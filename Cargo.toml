@@ -2,6 +2,9 @@
 name = "uda-connector"
 version = "0.1.0"
 edition = "2024"
+license = "Apache-2.0"
+description = "A Rust lib to access UDA (unicycling registration software)"
+repository = "https://github.com/maxence-cornaton/uda-connector"
 
 [dependencies]
 uda-dto = "0.1"
