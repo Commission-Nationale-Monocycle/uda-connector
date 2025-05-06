@@ -1,0 +1,19 @@
+[package]
+name = "uda-connector"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+uda-dto = "0.1"
+
+thiserror = "2.0.12"
+scraper = "0.23.1"
+derive-getters = "0.5.0"
+serde = { version = "1.0.219", features = ["derive"] }
+log = "0.4.27"
+reqwest = { version = "0.12.15", features = ["cookies"] }
+calamine = "0.27.0"
+
+[dev-dependencies]
+wiremock = "0.6.3"
+tokio = "1.45.0"

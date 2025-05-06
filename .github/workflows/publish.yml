@@ -1,0 +1,17 @@
+name: Publish to crates.io
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login
+        run: cargo login ${{ secrets.CARGO_TOKEN }}
+      - name: Publish
+        run: cargo publish
