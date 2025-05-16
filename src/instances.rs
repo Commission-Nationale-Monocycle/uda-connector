@@ -61,32 +61,31 @@ fn get_uda_instance_from_row(row: &ElementRef) -> Option<Instance> {
     ))
 }
 
+#[cfg(any(test, feature = "test"))]
+pub const BODY: &str = r##"<html class=""><head></head><body><div id="container"><div id="main"><h1>Existing Conventions</h1><table><thead><tr><th>Subdomain</th><th>Description</th><th>Created At</th></tr></thead><tbody><tr><td><a href="https://mt-ventoux-2023.reg.unicycling-software.com">mt-ventoux-2023</a></td><td>Mount Ventoux Unicycle Challenge</td><td>Wed, 03 May 2023 15:12:52 -0500</td></tr><tr><td><a href="https://cfm2025.reg.unicycling-software.com">cfm2025</a></td><td>CFM 2025</td><td>Mon, 27 Jan 2025 13:13:52 -0600</td></tr></tbody></table><hr><a class="button" href="/tenants/new?locale=en">New Convention</a></div></div></body></html>"##;
+#[cfg(any(test, feature = "test"))]
+pub fn get_expected_instances() -> Vec<Instance> {
+    vec![
+        Instance::new(
+            "mt-ventoux-2023".to_owned(),
+            "Mount Ventoux Unicycle Challenge".to_owned(),
+            "https://mt-ventoux-2023.reg.unicycling-software.com".to_owned(),
+        ),
+        Instance::new(
+            "cfm2025".to_owned(),
+            "CFM 2025".to_owned(),
+            "https://cfm2025.reg.unicycling-software.com".to_owned(),
+        ),
+    ]
+}
+
 #[cfg(test)]
-pub(crate) mod tests {
-    use crate::instances::Instance;
-
-    pub const BODY: &str = r##"<html class=""><head></head><body><div id="container"><div id="main"><h1>Existing Conventions</h1><table><thead><tr><th>Subdomain</th><th>Description</th><th>Created At</th></tr></thead><tbody><tr><td><a href="https://mt-ventoux-2023.reg.unicycling-software.com">mt-ventoux-2023</a></td><td>Mount Ventoux Unicycle Challenge</td><td>Wed, 03 May 2023 15:12:52 -0500</td></tr><tr><td><a href="https://cfm2025.reg.unicycling-software.com">cfm2025</a></td><td>CFM 2025</td><td>Mon, 27 Jan 2025 13:13:52 -0600</td></tr></tbody></table><hr><a class="button" href="/tenants/new?locale=en">New Convention</a></div></div></body></html>"##;
+pub mod tests {
     const MALFORMED_BODY: &str = r##"<html class=""><head></head><body><div id="container"><div id="main"><h1>Existing Conventions</h1><table><thead><tr><th>Subdomain</th><th>Description</th><th>Created At</th></tr></thead><tbody><tr><td><a href="https://mt-ventoux-2023.reg.unicycling-software.com">mt-ventoux-2023</a></td><td>Mount Ventoux Unicycle Challenge</td><td>Wed, 03 May 2023 15:12:52 -0500</td></tr><tr><td><a href="https://cfm2025.reg.unicycling-software.com">cfm2025</a></td><td>CFM 2025</td></tr></tbody></table><hr><a class="button" href="/tenants/new?locale=en">New Convention</a></div></div></body></html>"##;
-
-    pub fn get_expected_instances() -> Vec<Instance> {
-        vec![
-            Instance::new(
-                "mt-ventoux-2023".to_owned(),
-                "Mount Ventoux Unicycle Challenge".to_owned(),
-                "https://mt-ventoux-2023.reg.unicycling-software.com".to_owned(),
-            ),
-            Instance::new(
-                "cfm2025".to_owned(),
-                "CFM 2025".to_owned(),
-                "https://cfm2025.reg.unicycling-software.com".to_owned(),
-            ),
-        ]
-    }
 
     mod retrieve_uda_instances {
         use crate::error::UdaError;
-        use crate::instances::retrieve_uda_instances;
-        use crate::instances::tests::{get_expected_instances, BODY};
+        use crate::instances::{get_expected_instances, retrieve_uda_instances, BODY};
         use crate::tools::tests::build_client;
         use reqwest::header::LOCATION;
         use wiremock::matchers::{method, path};
@@ -154,8 +153,8 @@ pub(crate) mod tests {
         }
 
         mod get_uda_instances_from_html {
-            use crate::instances::tests::{get_expected_instances, BODY, MALFORMED_BODY};
-            use crate::instances::{get_uda_instances_from_html, Instance};
+            use crate::instances::{get_expected_instances, get_uda_instances_from_html, Instance, BODY};
+            use crate::instances::tests::MALFORMED_BODY;
 
             #[test]
             fn success() {

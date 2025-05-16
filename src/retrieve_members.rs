@@ -11,6 +11,10 @@ use log::{error, warn};
 use reqwest::Client;
 use std::io::Cursor;
 use uda_dto::uda_member::UdaMember;
+#[cfg(any(test, feature = "test"))]
+use wiremock::matchers::{method, path};
+#[cfg(any(test, feature = "test"))]
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 /// Retrieve members from UDA's organisation membership page.
 pub async fn retrieve_members(client: &Client, base_url: &str) -> Result<Vec<UdaMember>> {
@@ -88,69 +92,67 @@ fn retrieve_imported_members_from_xls<T: AsRef<[u8]>>(
     Ok(members)
 }
 
+#[cfg(any(test, feature = "test"))]
+fn get_test_file_content() -> Vec<u8> {
+    std::fs::read("test/resources/uda_members.xls").unwrap()
+}
+
+#[cfg(any(test, feature = "test"))]
+fn get_expected_member() -> Vec<UdaMember> {
+    vec![
+        UdaMember::new(
+            1,
+            Some("123456".to_owned()),
+            "Jon".to_owned(),
+            "Doe".to_owned(),
+            "jon.doe@email.com".to_owned(),
+            Some("Le club de test".to_owned()),
+            true,
+        ),
+        UdaMember::new(
+            2,
+            Some("654321".to_owned()),
+            "Jonette".to_owned(),
+            "Snow".to_owned(),
+            "jonette.snow@email.com".to_owned(),
+            None,
+            false,
+        ),
+        UdaMember::new(
+            1999,
+            Some("456789".to_owned()),
+            "Kris".to_owned(),
+            "Holm".to_owned(),
+            "kris.holm@email.com".to_owned(),
+            Some("KH Team".to_owned()),
+            true,
+        ),
+    ]
+}
+
+#[cfg(any(test, feature = "test"))]
+pub async fn setup_member_retrieval(mock_server: &MockServer) -> Vec<UdaMember> {
+    let body = get_test_file_content();
+
+    Mock::given(method("GET"))
+        .and(path("/en/organization_memberships/export.xls"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(body))
+        .mount(mock_server)
+        .await;
+
+    get_expected_member()
+}
+
 #[cfg(test)]
 pub mod tests {
-    use uda_dto::uda_member::UdaMember;
-    use wiremock::matchers::{method, path};
-    use wiremock::{Mock, MockServer, ResponseTemplate};
-
-    fn get_test_file_content() -> Vec<u8> {
-        std::fs::read("test/resources/uda_members.xls").unwrap()
-    }
-
-    fn get_expected_member() -> Vec<UdaMember> {
-        vec![
-            UdaMember::new(
-                1,
-                Some("123456".to_owned()),
-                "Jon".to_owned(),
-                "Doe".to_owned(),
-                "jon.doe@email.com".to_owned(),
-                Some("Le club de test".to_owned()),
-                true,
-            ),
-            UdaMember::new(
-                2,
-                Some("654321".to_owned()),
-                "Jonette".to_owned(),
-                "Snow".to_owned(),
-                "jonette.snow@email.com".to_owned(),
-                None,
-                false,
-            ),
-            UdaMember::new(
-                1999,
-                Some("456789".to_owned()),
-                "Kris".to_owned(),
-                "Holm".to_owned(),
-                "kris.holm@email.com".to_owned(),
-                Some("KH Team".to_owned()),
-                true,
-            ),
-        ]
-    }
-
-    pub async fn setup_member_retrieval(mock_server: &MockServer) -> Vec<UdaMember> {
-        let body = get_test_file_content();
-
-        Mock::given(method("GET"))
-            .and(path("/en/organization_memberships/export.xls"))
-            .respond_with(ResponseTemplate::new(200).set_body_bytes(body))
-            .mount(mock_server)
-            .await;
-
-        get_expected_member()
-    }
-
     mod retrieve_members {
         use crate::error::UdaError;
-        use crate::retrieve_members::retrieve_members;
-        use crate::retrieve_members::tests::setup_member_retrieval;
         use crate::error::UdaError::LackOfPermissions;
+        use crate::retrieve_members::{retrieve_members, setup_member_retrieval};
+        use crate::tools::tests::build_client;
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
         use UdaError::OrganizationMembershipsAccessFailed;
-        use crate::tools::tests::build_client;
 
         #[tokio::test]
         async fn success() {
@@ -197,8 +199,7 @@ pub mod tests {
     mod retrieve_imported_members_from_xls {
         use crate::error::UdaError;
         use crate::imported_uda_member::ImportedUdaMember;
-        use crate::retrieve_members::retrieve_imported_members_from_xls;
-        use crate::retrieve_members::tests::get_test_file_content;
+        use crate::retrieve_members::{get_test_file_content, retrieve_imported_members_from_xls};
         use std::io::Cursor;
         use UdaError::MalformedXlsFile;
 

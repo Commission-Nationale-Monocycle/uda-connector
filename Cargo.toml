@@ -1,13 +1,13 @@
 [package]
 name = "uda-connector"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2024"
 license = "Apache-2.0"
 description = "A Rust lib to access UDA (unicycling registration software)"
 repository = "https://github.com/maxence-cornaton/uda-connector"
 
 [features]
-test = []
+test = ["dep:wiremock"]
 
 [dependencies]
 uda-dto = "0.1"
@@ -19,6 +19,7 @@ serde = { version = "1.0.219", features = ["derive"] }
 log = "0.4.27"
 reqwest = { version = "0.12.15", features = ["cookies"] }
 calamine = "0.27.0"
+wiremock = { version = "0.6.3" , optional = true}
 
 [dev-dependencies]
 wiremock = "0.6.3"
