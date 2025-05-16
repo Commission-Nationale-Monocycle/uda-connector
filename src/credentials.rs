@@ -23,7 +23,7 @@ impl Debug for UdaCredentials {
         write!(
             f,
             "Uda Credentials {{uda={}, login={}, password=MASKED}}",
-            self.password, self.login
+            self.uda_url, self.login
         )
     }
 }
