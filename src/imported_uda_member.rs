@@ -52,7 +52,7 @@ impl From<ImportedUdaMember> for UdaMember {
     }
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test"))]
 impl ImportedUdaMember {
     #[allow(clippy::too_many_arguments)]
     pub fn new(

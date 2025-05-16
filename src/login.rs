@@ -1,9 +1,15 @@
+#[cfg(any(test, feature = "test"))]
+use crate::credentials::UdaCredentials;
 use crate::error::{log_error_and_return, log_message_and_return};
 use crate::Result;
 use crate::UdaError::{ConnectionFailed, WrongCredentials};
 use log::{debug, error};
 use reqwest::Client;
 use scraper::{Html, Selector};
+#[cfg(any(test, feature = "test"))]
+use wiremock::matchers::{body_string, method, path};
+#[cfg(any(test, feature = "test"))]
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 /// Log into UDA and makes given client able to request pages that require authentication.
 pub async fn authenticate_into_uda(
@@ -104,60 +110,58 @@ async fn check_credentials(
     }
 }
 
+#[cfg(any(test, feature = "test"))]
+const AUTHENTICITY_TOKEN: &str =
+    "BDv-07yMs8kMDnRn2hVgpSmqn88V_XhCZxImtcXr3u6OOmpnsy0WpFD49rTOuOEfJG_PptBBJag094Vd0uuyZg";
+
+#[cfg(any(test, feature = "test"))]
+pub async fn setup_authentication(mock_server: &MockServer) -> UdaCredentials {
+    let authenticity_token = setup_authenticity_token(mock_server).await;
+    setup_check_credentials(mock_server, &authenticity_token).await
+}
+
+#[cfg(any(test, feature = "test"))]
+async fn setup_check_credentials(
+    mock_server: &MockServer,
+    authenticity_token: &str,
+) -> UdaCredentials {
+    let login = "login";
+    let password = "password";
+
+    let params = format!(
+        "user%5Bemail%5D={login}&user%5Bpassword%5D={password}&authenticity_token={authenticity_token}&utf8=%E2%9C%93"
+    );
+    Mock::given(method("POST"))
+        .and(path("/en/users/sign_in"))
+        .and(body_string(&params))
+        .respond_with(ResponseTemplate::new(200).set_body_string("Signed in successfully"))
+        .mount(mock_server)
+        .await;
+
+    UdaCredentials::new(mock_server.uri(), login.to_owned(), password.to_owned())
+}
+
+#[cfg(any(test, feature = "test"))]
+pub async fn setup_authenticity_token(mock_server: &MockServer) -> String {
+    let body = format!(
+        r#"<html><body><input name="authenticity_token" value="{AUTHENTICITY_TOKEN}"></body></html>"#
+    );
+    Mock::given(method("GET"))
+        .and(path("/en/users/sign_in"))
+        .respond_with(ResponseTemplate::new(200).set_body_string(&body))
+        .mount(mock_server)
+        .await;
+
+    AUTHENTICITY_TOKEN.to_owned()
+}
+
 #[cfg(test)]
 pub mod tests {
-    use crate::credentials::UdaCredentials;
-    use wiremock::matchers::{body_string, method, path};
-    use wiremock::{Mock, MockServer, ResponseTemplate};
-
-    // region Common methods and const
-    const AUTHENTICITY_TOKEN: &str =
-        "BDv-07yMs8kMDnRn2hVgpSmqn88V_XhCZxImtcXr3u6OOmpnsy0WpFD49rTOuOEfJG_PptBBJag094Vd0uuyZg";
-
-    pub async fn setup_authentication(mock_server: &MockServer) -> UdaCredentials {
-        let authenticity_token = setup_authenticity_token(mock_server).await;
-        setup_check_credentials(mock_server, &authenticity_token).await
-    }
-
-    async fn setup_check_credentials(
-        mock_server: &MockServer,
-        authenticity_token: &str,
-    ) -> UdaCredentials {
-        let login = "login";
-        let password = "password";
-
-        let params = format!(
-            "user%5Bemail%5D={login}&user%5Bpassword%5D={password}&authenticity_token={authenticity_token}&utf8=%E2%9C%93"
-        );
-        Mock::given(method("POST"))
-            .and(path("/en/users/sign_in"))
-            .and(body_string(&params))
-            .respond_with(ResponseTemplate::new(200).set_body_string("Signed in successfully"))
-            .mount(mock_server)
-            .await;
-
-        UdaCredentials::new(mock_server.uri(), login.to_owned(), password.to_owned())
-    }
-
-    pub(crate) async fn setup_authenticity_token(mock_server: &MockServer) -> String {
-        let body = format!(
-            r#"<html><body><input name="authenticity_token" value="{AUTHENTICITY_TOKEN}"></body></html>"#
-        );
-        Mock::given(method("GET"))
-            .and(path("/en/users/sign_in"))
-            .respond_with(ResponseTemplate::new(200).set_body_string(&body))
-            .mount(mock_server)
-            .await;
-
-        AUTHENTICITY_TOKEN.to_owned()
-    }
-    // endregion
-
     mod authenticate_into_uda {
         use crate::credentials::UdaCredentials;
         use crate::error::UdaError;
         use crate::login::authenticate_into_uda;
-        use crate::login::tests::{setup_authentication, setup_authenticity_token};
+        use crate::login::{setup_authentication, setup_authenticity_token};
         use reqwest::Client;
         use wiremock::matchers::{body_string, method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -231,7 +235,7 @@ pub mod tests {
     mod get_authenticity_token {
         use crate::error::UdaError;
         use crate::login::get_authenticity_token;
-        use crate::login::tests::setup_authenticity_token;
+        use crate::login::setup_authenticity_token;
         use crate::tools::tests::build_client;
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -286,8 +290,7 @@ pub mod tests {
 
     mod get_authenticity_token_from_html {
         use crate::error::UdaError;
-        use crate::login::get_authenticity_token_from_html;
-        use crate::login::tests::AUTHENTICITY_TOKEN;
+        use crate::login::{get_authenticity_token_from_html, AUTHENTICITY_TOKEN};
         use scraper::Html;
 
         #[test]
@@ -314,7 +317,7 @@ pub mod tests {
     mod check_credentials {
         use crate::error::UdaError;
         use crate::login::check_credentials;
-        use crate::login::tests::{setup_check_credentials, AUTHENTICITY_TOKEN};
+        use crate::login::{setup_check_credentials, AUTHENTICITY_TOKEN};
         use crate::tools::tests::build_client;
         use wiremock::matchers::{body_string, method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
