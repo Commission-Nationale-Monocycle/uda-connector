@@ -28,7 +28,7 @@ impl Debug for UdaCredentials {
     }
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test"))]
 impl UdaCredentials {
     pub fn new(uda_url: String, login: String, password: String) -> Self {
         Self {
