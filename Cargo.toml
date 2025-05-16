@@ -20,6 +20,7 @@ log = "0.4.27"
 reqwest = { version = "0.12.15", features = ["cookies"] }
 calamine = "0.27.0"
 wiremock = { version = "0.6.3" , optional = true}
+url = "2.5.4"
 
 [dev-dependencies]
 wiremock = "0.6.3"
