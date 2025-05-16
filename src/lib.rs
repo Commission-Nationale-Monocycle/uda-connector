@@ -1,6 +1,7 @@
 use crate::error::UdaError;
 
 pub mod configuration;
+pub mod confirm_member;
 pub mod credentials;
 pub mod error;
 pub mod imported_uda_member;
