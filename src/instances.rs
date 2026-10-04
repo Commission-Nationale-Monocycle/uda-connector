@@ -57,7 +57,8 @@ fn get_uda_instance_from_row(row: &ElementRef) -> Option<Instance> {
     Some(Instance::new(
         slug.to_owned(),
         name.to_owned(),
-        link.to_owned(),
+        // Ensuring we will target only HTTPS URLs. We'll have issues otherwise.
+        str::replace(link, "http://", "https://"),
     ))
 }
 
